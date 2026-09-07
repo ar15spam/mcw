@@ -2648,3 +2648,159 @@ h1, h2, h3, p { margin: 0; }
   .dashboardLoggedOut .dashNavSpacer { display: none; }
   .dashboardLoggedOut .dashNavTextLink { grid-column: 2; grid-row: 1; }
 }
+
+/* Minimal workspace + discovery refresh ----------------------------------- */
+.dashboardPageV2,
+.explorePage {
+  background: #070707;
+  color: #f3f3ef;
+}
+
+.dashboardPageV2 .dashNavV2,
+.explorePage .exploreNav {
+  height: 68px;
+  padding: 0 32px;
+  border-bottom: 1px solid #202126;
+  background: #070707;
+}
+
+.dashboardPageV2 .wordmark,
+.explorePage .wordmark {
+  letter-spacing: -.04em;
+}
+
+.dashboardPageV2 .dashNavMiddleV2,
+.explorePage .exploreNavLinks {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  gap: 28px;
+}
+
+.dashboardPageV2 .dashNavMiddleV2 .active,
+.explorePage .exploreNavLinks .active {
+  background: transparent;
+  color: #f3f3ef;
+  position: relative;
+}
+
+.dashboardPageV2 .dashNavMiddleV2 .active::after,
+.explorePage .exploreNavLinks .active::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -10px;
+  left: 0;
+  height: 2px;
+  background: #1a22ff;
+}
+
+.dashboardPageV2 .dashAccountV2 i { background: #b9ff40; color: #070707; }
+.dashboardPageV2 .dashAccountV2 span { color: #8b8d91; }
+
+.dashboardFrame,
+.exploreFrame {
+  width: min(1180px, calc(100% - 64px));
+}
+
+.dashboardFrame { padding: 92px 0 120px; }
+.dashboardHeaderV2 { padding-bottom: 70px; align-items: flex-start; }
+.dashboardTitleBlock { max-width: 700px; }
+.dashboardKicker { color: #1a22ff; letter-spacing: .16em; }
+.dashboardTitleBlock h1 {
+  font-size: clamp(64px, 9vw, 128px);
+  line-height: .78;
+  letter-spacing: -.09em;
+  text-transform: uppercase;
+}
+.dashboardTitleBlock p { max-width: 360px; margin-top: 24px; color: #858589; line-height: 1.55; }
+.dashboardCreateButton {
+  min-height: 46px;
+  margin-top: 10px;
+  border: 1px solid #f3f3ef;
+  border-radius: 0;
+  background: #f3f3ef;
+  color: #070707;
+  box-shadow: none;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+.dashboardCreateButton:hover:not(:disabled) { background: #b9ff40; border-color: #b9ff40; }
+.dashboardUtilityBar { margin-bottom: 58px; border-color: #2a2a2e; }
+.dashboardJoinForm > label { color: #f3f3ef; text-transform: uppercase; letter-spacing: .1em; font-size: 9px; }
+.dashboardJoinForm input { border-color: #343438; border-radius: 0; background: transparent; }
+.dashboardJoinForm button { border-radius: 0; background: transparent; color: #b9ff40; text-transform: uppercase; letter-spacing: .08em; }
+.dashboardJoinForm button:hover { background: #1a22ff; color: #fff; }
+.dashboardSectionHeadV2 { padding-bottom: 18px; border-color: #2a2a2e; }
+.dashboardSectionHeadV2 h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .14em; }
+.projectGridV2 { gap: 1px; padding-top: 1px; }
+.projectCardV2,
+.emptyProjectCardV2 {
+  min-height: 330px;
+  border: 1px solid #2a2a2e !important;
+  border-radius: 0;
+  background: #0b0b0d;
+}
+.projectCardV2:hover { transform: none; border-color: #1a22ff !important; background: #0e0e11; }
+.projectCardVisual { height: 204px; border-bottom-color: #2a2a2e; background-color: #09090b; }
+.projectCardPattern { inset: 70px 18px 22px; gap: 3px; }
+.projectCardPattern i { border-radius: 0; border-color: #202126; }
+.projectCardPattern i.on { border-color: #1a22ff; background: #1a22ff; }
+.projectVariant1 .projectCardPattern i.on { border-color: #b9ff40; background: #b9ff40; }
+.projectVariant2 .projectCardPattern i.on { border-color: #f3f3ef; background: #f3f3ef; }
+.projectVariant3 .projectCardPattern i.on { border-color: #6e7077; background: #6e7077; }
+.projectCardPlay { border-radius: 0; }
+.projectCardContent { min-height: 124px; padding: 18px; }
+.projectCardContent h3 { font-size: 19px; }
+.projectCardMeta span:last-child { color: #b9ff40; text-transform: uppercase; letter-spacing: .08em; }
+.emptyProjectCardV2 { align-items: flex-start; justify-content: flex-end; }
+.emptyProjectCardV2 > span { color: #1a22ff; }
+
+.exploreFrame { padding: 94px 0 120px; }
+.exploreHeader { align-items: flex-start; padding-bottom: 76px; }
+.exploreHeader h1 {
+  font-size: clamp(72px, 13vw, 168px);
+  line-height: .72;
+  letter-spacing: -.1em;
+}
+.exploreHeader p { margin-top: 28px; max-width: 360px; color: #858589; }
+.exploreSearch { width: 250px; margin-top: 12px; border-color: #343438; }
+.exploreSearch input { font-size: 11px; }
+.genreRail { gap: 24px; padding: 15px 0; border-color: #2a2a2e; }
+.genreRail button { border: 0; border-radius: 0; padding: 3px 0; color: #696a70; text-transform: uppercase; letter-spacing: .1em; }
+.genreRail button.selected, .genreRail button:hover { background: transparent; color: #b9ff40; }
+.exploreLead, .exploreSection, .exploreBottom { padding-top: 76px; }
+.sectionLabel { margin-bottom: 24px; color: #66676d; }
+.sectionLabel span:first-child { color: #1a22ff; }
+.sectionLabel h2 { font-size: 11px; letter-spacing: .14em; }
+.featuredGrid { grid-template-columns: 1.6fr 1fr 1fr; gap: 1px; }
+.featuredSession { min-height: 330px; padding: 20px; border-color: #2a2a2e; border-radius: 0; background: #0c0c0e !important; }
+.featuredSession.blue { box-shadow: inset 0 3px #1a22ff; }
+.featuredSession.lime { box-shadow: inset 0 3px #b9ff40; }
+.featuredSession.orange { box-shadow: inset 0 3px #f3f3ef; }
+.featuredSession:hover { transform: none; border-color: #f3f3ef; }
+.featuredInfo h3 { font-size: 22px; }
+.sessionStats { color: #777980; }
+.communityGrid { grid-template-columns: repeat(3, 1fr); gap: 1px; }
+.communityCard { padding: 0 0 24px; border-bottom: 1px solid #2a2a2e; }
+.communityVisual { border: 0; border-top: 2px solid #27282d; background: #0b0b0d; }
+.communityCard:hover .communityVisual { border-top-color: #1a22ff; }
+.communityCopy { padding-top: 14px; }
+.communityCopy h3 { font-size: 15px; }
+.liveRooms { border-top-color: #2a2a2e; }
+.liveRooms > div { padding: 22px 0; border-bottom-color: #2a2a2e; }
+.liveRooms a { color: #b9ff40; }
+.exploreDisclaimer { border-top: 1px solid #2a2a2e; padding-top: 18px; }
+
+@media (max-width: 760px) {
+  .dashboardPageV2 .dashNavV2,
+  .explorePage .exploreNav { padding: 0 14px; }
+  .dashboardFrame, .exploreFrame { width: calc(100% - 28px); }
+  .dashboardFrame, .exploreFrame { padding-top: 54px; }
+  .dashboardHeaderV2 { padding-bottom: 46px; }
+  .dashboardTitleBlock h1, .exploreHeader h1 { font-size: 70px; }
+  .dashboardCreateButton { margin-top: 4px; }
+  .exploreHeader { padding-bottom: 48px; }
+  .featuredGrid, .communityGrid { gap: 1px; }
+  .featuredSession { min-height: 270px; }
+}
