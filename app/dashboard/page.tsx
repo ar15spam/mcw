@@ -135,7 +135,7 @@ export default function DashboardPage() {
         </Link>
 
         <div className="dashNavMiddle dashNavMiddleV2">
-          <span className="active">Projects</span>
+          <Link href="/dashboard" className="active">Projects</Link><Link href="/explore">Explore</Link>
         </div>
 
         <div className="dashAccount dashAccountV2">

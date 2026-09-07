@@ -211,7 +211,7 @@ export default function StudioPage() {
             <span className="markBars studioMarkBars" aria-hidden="true"><i /><i /><i /><i /><i /></span>
             MIDICOLLAB
           </a>
-          <span className="studioNavDivider" />
+          <span className="studioNavDivider" /><a className="studioBackLink" href="/explore">Explore</a>
           <div className="studioProjectIdentity">
             <input
               className="projectName projectNameNav"

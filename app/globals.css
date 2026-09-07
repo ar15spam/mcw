@@ -517,6 +517,45 @@ h1, h2, h3, p { margin: 0; }
 .loopField { gap: 5px; }
 .loopField select { width: 56px; }
 
+/* Explore + product surfaces */
+.explorePage { min-height: 100vh; background: #070707; color: #f3f3ef; font-family: Arial, Helvetica, sans-serif; }
+.exploreNav { grid-template-columns: 1fr auto 1fr; background: #070707; }
+.exploreNavLinks { display: flex; gap: 28px; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.exploreNavLinks a, .exploreNavLinks span { color: #777; }
+.exploreNavLinks .active { color: #fff; }
+.exploreProfile { justify-self: end; color: #888; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+.exploreProfile span { color: #1a22ff; margin-left: 8px; }
+.exploreFrame { width: min(1280px, calc(100% - 48px)); margin: 0 auto; padding: 74px 0 100px; }
+.exploreHeader { display: flex; align-items: end; justify-content: space-between; gap: 32px; padding-bottom: 46px; }
+.exploreHeader h1 { margin: 8px 0 12px; font-size: clamp(64px, 11vw, 150px); line-height: .78; letter-spacing: -.09em; text-transform: uppercase; }
+.exploreHeader p { color: #8c8c88; font-size: 16px; max-width: 380px; line-height: 1.4; }
+.dashboardKicker { color: #1a22ff; font-size: 9px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+.exploreSearch { display: flex; align-items: center; gap: 10px; width: 280px; border-bottom: 1px solid #444; padding: 10px 0; color: #777; }
+.exploreSearch input { flex: 1; border: 0; outline: 0; background: transparent; color: #fff; font-size: 12px; }
+.genreRail { display: flex; gap: 8px; border-top: 1px solid #272727; border-bottom: 1px solid #272727; padding: 14px 0; overflow-x: auto; }
+.genreRail button { border: 1px solid #353535; border-radius: 999px; padding: 7px 12px; background: transparent; color: #858585; font-size: 10px; white-space: nowrap; }
+.genreRail button.selected, .genreRail button:hover { background: #1a22ff; border-color: #1a22ff; color: #fff; }
+.exploreLead, .exploreSection, .exploreBottom { padding-top: 42px; }
+.sectionLabel { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; color: #767676; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+.sectionLabel h2 { color: #eee; font-size: 12px; letter-spacing: .08em; }
+.sectionRule { height: 1px; flex: 1; background: #292929; }
+.sectionCount { color: #555; }
+.featuredGrid { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 2px; }
+.featuredSession { min-height: 290px; display: flex; flex-direction: column; justify-content: space-between; padding: 18px; border: 1px solid #272727; background: #101010; text-decoration: none; transition: transform .2s, border-color .2s; }
+.featuredSession:hover { transform: translateY(-4px); border-color: #1a22ff; }
+.featuredSession.blue { background: #101657; }.featuredSession.lime { background: #172017; }.featuredSession.orange { background: #24170e; }
+.explorePattern { display: grid; grid-template-columns: repeat(18, 1fr); align-items: end; gap: 4px; height: 112px; opacity: .75; }
+.explorePattern i { height: 12%; background: currentColor; opacity: .22; }.explorePattern i.on { height: 68%; opacity: .8; }.explorePattern i:nth-child(3n).on { height: 42%; }.explorePattern.compact { height: 90px; gap: 3px; }
+.explorePattern.blue { color: #8d98ff; }.explorePattern.lime { color: #b5ef6b; }.explorePattern.orange { color: #ff9b55; }.explorePattern.violet { color: #bb9bff; }.explorePattern.cyan { color: #6eeaff; }.explorePattern.red { color: #ff7a75; }
+.featuredInfo, .sessionStats, .communityCopy, .liveRooms > div { display: flex; align-items: end; justify-content: space-between; gap: 12px; }
+.liveLabel { color: #b9ff40; font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.featuredInfo h3 { margin-top: 10px; font-size: 25px; letter-spacing: -.05em; }.featuredInfo p, .communityCopy p { margin-top: 5px; color: #aaa; font-size: 11px; }.sessionArrow { font-size: 22px; }.sessionStats { padding-top: 14px; border-top: 1px solid rgba(255,255,255,.2); color: #aaa; font: 9px ui-monospace, monospace; }
+.communityGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px 14px; }.communityCard { color: inherit; text-decoration: none; }.communityVisual { position: relative; padding: 14px; border: 1px solid #292929; background: #0e0e0e; }.cardIndex { position: absolute; top: 12px; left: 12px; color: #777; font: 10px ui-monospace, monospace; }.playMark { position: absolute; right: 12px; bottom: 10px; color: #fff; font-size: 11px; }.communityCopy { align-items: start; padding-top: 12px; }.communityCopy h3 { font-size: 15px; letter-spacing: -.03em; }.communityMeta { color: #777; font: 9px ui-monospace, monospace; text-align: right; line-height: 1.6; }
+.liveRooms { border-top: 1px solid #292929; }.liveRooms > div { padding: 17px 0; border-bottom: 1px solid #292929; align-items: center; }.liveRooms strong { min-width: 190px; font-size: 14px; }.liveRooms span:not(.livePulse) { color: #777; font-size: 11px; }.liveRooms b { margin-left: auto; color: #777; font: 10px ui-monospace, monospace; font-weight: 400; }.liveRooms a { color: #fff; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }.livePulse { display: inline-block; background: #b9ff40; box-shadow: 0 0 12px rgba(185,255,64,.6); }
+.exploreDisclaimer { margin-top: 60px; color: #555; font-size: 10px; letter-spacing: .04em; }
+.studioBackLink { color: #777; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }.studioBackLink:hover { color: #fff; }
+@media (max-width: 760px) { .exploreFrame { width: min(100% - 28px, 1280px); padding-top: 42px; }.exploreHeader { display: block; }.exploreSearch { margin-top: 28px; width: 100%; }.featuredGrid, .communityGrid { grid-template-columns: 1fr; }.featuredSession { min-height: 240px; }.exploreNavLinks { display: none; }.liveRooms > div { flex-wrap: wrap; }.liveRooms strong { min-width: 150px; }.liveRooms b { margin-left: 0; }.studioBackLink { display: none; } }
+
 /* ========================================================================== */
 /* MIDICOLLAB PRODUCT / MARKETING SYSTEM                                      */
 /* ========================================================================== */
