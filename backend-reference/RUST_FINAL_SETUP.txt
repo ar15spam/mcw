@@ -1,0 +1,47 @@
+# Rust studio server setup
+
+Put:
+
+studio_server.rs -> src/bin/studio_server.rs
+
+Add these dependencies to your existing Cargo.toml:
+
+axum = { version = "0.8", features = ["ws", "multipart"] }
+futures-util = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tower-http = { version = "0.6", features = ["cors", "fs"] }
+
+Your existing Tokio dependency is sufficient if it is:
+
+tokio = { version = "1", features = ["full"] }
+
+Run locally:
+
+cargo run --bin studio_server
+
+The server listens on PORT when Railway provides it, otherwise 8080.
+
+It creates:
+
+data/projects/
+data/samples/
+
+Railway frontend env values should use the normal HTTP domain, not the old raw TCP proxy:
+
+NEXT_PUBLIC_API_URL=https://YOUR-SERVICE.up.railway.app
+NEXT_PUBLIC_WS_URL=wss://YOUR-SERVICE.up.railway.app/ws
+
+If your existing Rust package still has `midir` as a normal package dependency, Railway may
+still need:
+
+RAILPACK_BUILD_APT_PACKAGES=libasound2-dev
+
+because Cargo/Railpack may compile the MIDI dependency even though this server binary does
+not use it. Later, split the native MIDI bridge into a separate crate or make `midir` optional.
+
+For durable Railway persistence, attach a Railway Volume at `/data` and set:
+
+DATA_DIR=/data
+
+Without a persistent volume, projects and uploaded samples can disappear on redeploy.
