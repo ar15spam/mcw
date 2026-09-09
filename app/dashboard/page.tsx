@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { createProject } from "@/lib/create-project";
+import NewProjectDialog from "@/components/dashboard/NewProjectDialog";
 
 type ProjectRow = {
   id: string;
@@ -36,6 +37,7 @@ export default function DashboardPage() {
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [projectError, setProjectError] = useState("");
   const [creating, setCreating] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -68,18 +70,30 @@ export default function DashboardPage() {
     return name ? name.split(/\s+/)[0] : "Producer";
   }, [session?.user?.name]);
 
-  async function handleCreate() {
+  async function handleStart(starter: string, describe?: string) {
     if (!session?.user || creating) return;
     setCreating(true);
     setProjectError("");
     try {
       const id = await createProject();
-      router.push(`/studio?project=${encodeURIComponent(id)}`);
+      if (describe) {
+        try {
+          sessionStorage.setItem("mc_starter_describe", describe);
+        } catch {
+          /* ignore */
+        }
+      }
+      const query =
+        starter && starter !== "beat"
+          ? `&starter=${encodeURIComponent(starter)}`
+          : "";
+      router.push(`/studio?project=${encodeURIComponent(id)}${query}`);
     } catch (cause) {
       setProjectError(
         cause instanceof Error ? cause.message : "Could not create project",
       );
       setCreating(false);
+      setDialogOpen(false);
     }
   }
 
@@ -220,7 +234,7 @@ export default function DashboardPage() {
 
           <button
             className="dashboardCreateButton"
-            onClick={handleCreate}
+            onClick={() => setDialogOpen(true)}
             disabled={creating}
           >
             <span>+</span>
@@ -352,7 +366,7 @@ export default function DashboardPage() {
               {projects.length === 0 && (
                 <button
                   className="emptyProjectCard emptyProjectCardV2"
-                  onClick={handleCreate}
+                  onClick={() => setDialogOpen(true)}
                   disabled={creating}
                 >
                   <span>+</span>
@@ -367,6 +381,14 @@ export default function DashboardPage() {
           )}
         </section>
       </div>
+
+      {dialogOpen && (
+        <NewProjectDialog
+          busy={creating}
+          onClose={() => setDialogOpen(false)}
+          onStart={handleStart}
+        />
+      )}
     </main>
   );
 }

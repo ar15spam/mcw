@@ -62,6 +62,12 @@ Set every key (Production scope):
 | `BETTER_AUTH_URL`          | `https://<your-app-domain>`  (exact deployed origin)    |
 | `REALTIME_SHARED_SECRET`   | the value from step 1 (same as Railway)                 |
 
+**AI co-producer (optional but recommended):** set one of `ANTHROPIC_API_KEY` or
+`OPENAI_API_KEY` for real language understanding. Without a key it runs in
+"offline mode" (pattern matcher — handles "make it darker", "add a bassline",
+"turn it into house", tempo changes, etc.). `AGENT_MODEL` overrides the model
+(default `claude-sonnet-5`); `AGENT_OFFLINE=0` disables the fallback.
+
 Optional Google OAuth: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
 `NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true`. If absent, email/password still works and
 the Google button explains setup is required. If you enable it, add

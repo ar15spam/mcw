@@ -2,43 +2,165 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import {
+  EXPLORE_GENRES,
+  EXPLORE_MOODS,
+  EXPLORE_SESSIONS,
+  type ExploreSession,
+} from "@/lib/explore-mock";
 
-const genres = ["All rooms", "House", "Techno", "R&B", "Hip-Hop", "Ambient", "Garage", "DnB"];
-const sessions = [
-  { title: "Night drive sketches", creator: "mara.wav", genre: "House", bpm: 124, bars: 16, live: true, color: "blue", id: "night-drive" },
-  { title: "Soft focus / 02", creator: "juniper", genre: "Ambient", bpm: 96, bars: 8, live: false, color: "lime", id: "soft-focus" },
-  { title: "Concrete gardens", creator: "kaito", genre: "Techno", bpm: 132, bars: 32, live: true, color: "orange", id: "concrete-gardens" },
-  { title: "Afterimage", creator: "sol.8", genre: "R&B", bpm: 88, bars: 8, live: false, color: "violet", id: "afterimage" },
-  { title: "Late checkout", creator: "milo", genre: "Garage", bpm: 138, bars: 16, live: false, color: "cyan", id: "late-checkout" },
-  { title: "Dust on the lens", creator: "northstar", genre: "Hip-Hop", bpm: 92, bars: 12, live: false, color: "red", id: "dust-lens" },
-];
+function Pattern({ color, seed }: { color: string; seed: number }) {
+  return (
+    <div className={`explorePattern is-${color}`} aria-hidden="true">
+      {Array.from({ length: 32 }, (_, i) => (
+        <i key={i} className={(i * 7 + seed) % 9 < 3 ? "on" : ""} />
+      ))}
+    </div>
+  );
+}
 
-function Pattern({ color, compact = false }: { color: string; compact?: boolean }) {
-  return <div className={`explorePattern ${color} ${compact ? "compact" : ""}`} aria-hidden="true">{Array.from({ length: compact ? 18 : 36 }, (_, i) => <i key={i} className={(i * 7 + color.length) % 9 < 3 ? "on" : ""} />)}</div>;
+function SessionCard({ session, index }: { session: ExploreSession; index: number }) {
+  return (
+    <article className="exploreCard">
+      <Pattern color={session.color} seed={index} />
+      <div className="exploreCardInfo">
+        <div>
+          <span className="exploreCardTag">
+            {session.live ? "● Live now" : session.mood}
+          </span>
+          <h3>{session.title}</h3>
+          <p>
+            {session.creator} · {session.genre}
+          </p>
+        </div>
+        <span className="exploreCardMeta">
+          {session.bpm} BPM · {session.bars} bars
+        </span>
+      </div>
+    </article>
+  );
 }
 
 export default function ExplorePage() {
-  const [genre, setGenre] = useState("All rooms");
+  const [mood, setMood] = useState<string | null>(null);
+  const [genre, setGenre] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const filtered = useMemo(() => sessions.filter((session) => (genre === "All rooms" || session.genre === genre) && `${session.title} ${session.creator}`.toLowerCase().includes(query.toLowerCase())), [genre, query]);
+
+  const filtered = useMemo(
+    () =>
+      EXPLORE_SESSIONS.filter(
+        (s) =>
+          (!mood || s.mood === mood) &&
+          (!genre || s.genre === genre) &&
+          `${s.title} ${s.creator}`.toLowerCase().includes(query.toLowerCase()),
+      ),
+    [mood, genre, query],
+  );
+
+  const live = EXPLORE_SESSIONS.filter((s) => s.live);
+
   return (
-    <main className="explorePage">
-      <nav className="dashNav exploreNav">
-        <Link className="wordmark" href="/dashboard"><span className="markBars" aria-hidden="true"><i /><i /><i /><i /><i /></span>MIDICOLLAB</Link>
-        <div className="exploreNavLinks"><Link href="/dashboard">Projects</Link><span className="active">Explore</span></div>
-        <Link className="exploreProfile" href="/dashboard">Workspace <span>↗</span></Link>
+    <main className="explore">
+      <div className="landingAtmos" aria-hidden="true" />
+
+      <nav className="landingNav">
+        <Link className="wordmark" href="/dashboard">
+          <span className="markBars" aria-hidden="true">
+            <i /><i /><i /><i /><i />
+          </span>
+          MIDICOLLAB
+        </Link>
+        <div className="landingNavLinks">
+          <Link href="/dashboard">Projects</Link>
+          <span className="active">Explore</span>
+        </div>
+        <Link className="landingNavCta" href="/dashboard">
+          Your workspace
+        </Link>
       </nav>
-      <div className="exploreFrame">
-        <header className="exploreHeader">
-          <div><span className="dashboardKicker">Community sessions · preview</span><h1>Explore</h1><p>Find a room, follow a thread, and make something with someone new.</p></div>
-          <label className="exploreSearch"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search sessions or creators" aria-label="Search sessions or creators" /></label>
-        </header>
-        <div className="genreRail">{genres.map((item) => <button key={item} className={genre === item ? "selected" : ""} onClick={() => setGenre(item)}>{item}</button>)}</div>
-        <section className="exploreLead"><div className="sectionLabel"><span>01</span><h2>Featured sessions</h2><span className="sectionRule" /></div><div className="featuredGrid">{sessions.slice(0, 3).map((session) => <Link href="/signup" className={`featuredSession ${session.color}`} key={session.id}><Pattern color={session.color} /><div className="featuredInfo"><div><span className="liveLabel">{session.live ? "● Live now" : "Shared session"}</span><h3>{session.title}</h3><p>{session.creator} · {session.genre}</p></div><span className="sessionArrow">↗</span></div><div className="sessionStats"><span>{session.bpm} BPM</span><span>{session.bars} bars</span><span>{session.live ? "3 collaborators" : "Updated today"}</span></div></Link>)}</div></section>
-        <section className="exploreSection"><div className="sectionLabel"><span>02</span><h2>New from the community</h2><span className="sectionRule" /><span className="sectionCount">{filtered.length} sessions</span></div><div className="communityGrid">{filtered.map((session, index) => <Link href="/signup" className="communityCard" key={session.id}><div className="communityVisual"><Pattern color={session.color} compact /><span className="cardIndex">{String(index + 1).padStart(2, "0")}</span><span className="playMark">▶</span></div><div className="communityCopy"><div><h3>{session.title}</h3><p>{session.creator}</p></div><span className="communityMeta">{session.genre}<br />{session.bpm} BPM</span></div></Link>)}</div></section>
-        <section className="exploreBottom"><div className="sectionLabel"><span>03</span><h2>Live rooms</h2><span className="sectionRule" /></div><div className="liveRooms"><div><span className="livePulse" /><strong>Concrete gardens</strong><span>kaito + 2 others</span><b>132 BPM</b><Link href="/signup">Join room →</Link></div><div><span className="livePulse" /><strong>Night drive sketches</strong><span>mara.wav + 1 other</span><b>124 BPM</b><Link href="/signup">Join room →</Link></div></div></section>
-        <p className="exploreDisclaimer">Explore is a product preview using sample community sessions. Public discovery APIs can plug into these components when ready.</p>
-      </div>
+
+      <header className="exploreHeader">
+        <span className="landingIndex">COMMUNITY · PREVIEW</span>
+        <h1>Explore</h1>
+        <p>Find a sound, follow a thread, make something with someone new.</p>
+        <label className="exploreSearch">
+          <span aria-hidden="true">⌕</span>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search sessions or creators"
+            aria-label="Search sessions or creators"
+          />
+        </label>
+      </header>
+
+      <section className="exploreRailBlock">
+        <h2>Moods</h2>
+        <div className="exploreRail">
+          {EXPLORE_MOODS.map((m) => (
+            <button
+              key={m}
+              className={mood === m ? "isActive" : ""}
+              onClick={() => setMood(mood === m ? null : m)}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="exploreRailBlock">
+        <h2>Genres</h2>
+        <div className="exploreRail">
+          {EXPLORE_GENRES.map((g) => (
+            <button
+              key={g}
+              className={genre === g ? "isActive" : ""}
+              onClick={() => setGenre(genre === g ? null : g)}
+            >
+              {g}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="exploreSection">
+        <div className="exploreSectionHead">
+          <h2>{mood || genre ? "Matching sessions" : "New from the community"}</h2>
+          <span>{filtered.length} sessions</span>
+        </div>
+        <div className="exploreGrid">
+          {filtered.map((s, i) => (
+            <SessionCard key={s.id} session={s} index={i} />
+          ))}
+          {filtered.length === 0 && (
+            <p className="exploreEmpty">Nothing here yet — clear a filter.</p>
+          )}
+        </div>
+      </section>
+
+      {live.length > 0 && (
+        <section className="exploreSection">
+          <div className="exploreSectionHead">
+            <h2>Live now</h2>
+          </div>
+          <div className="exploreLive">
+            {live.map((s) => (
+              <div key={s.id}>
+                <span className="livePulse" />
+                <strong>{s.title}</strong>
+                <span>{s.creator}</span>
+                <b>{s.bpm} BPM</b>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <p className="exploreDisclaimer">
+        Explore is a product preview using sample sessions. It does not read or
+        write real projects yet.
+      </p>
     </main>
   );
 }
