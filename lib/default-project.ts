@@ -272,6 +272,7 @@ export function createDefaultProject(projectId: string): ProjectState {
     loopStartBar: 0,
     loopEndBar: 8,
     masterVolume: 0.85,
+    isPublic: false,
     revision: 0,
     tracks: [drums, bass, chords, lead],
     samples: [],

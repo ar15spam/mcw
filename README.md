@@ -1,160 +1,117 @@
 # MIDICOLLAB Web
 
-A collaborative browser music studio with a new product shell around the existing DAW.
+A collaborative browser music studio. Make music in your browser with another
+person in real time — create a project, share a link, and edit the same session
+together.
 
-This version adds:
+This is the Next.js front end. The realtime engine lives in a separate Rust
+service (`ms` repo, deployed to Railway).
 
-- a full editorial music-product landing page at `/`
-- signup at `/signup`
-- login at `/login`
-- an account/project dashboard at `/dashboard`
-- the existing collaborative DAW moved to `/studio?project=<room-id>`
-- the existing public player at `/p/<project-id>`
-- Better Auth email/password auth
-- optional Google OAuth
-- Drizzle ORM + Neon Postgres
-- Postgres project metadata while the Rust backend continues to own the realtime musical document
-- the BPM/project-name draft fixes so server broadcasts do not fight the input while you type
+## The core loop
+
+```
+sign up → dashboard → new project → studio opens → make music
+        → Share → friend opens link → friend signs in → friend lands in the same studio
+        → both edit live → autosaves → leave → come back → project is still there
+```
 
 ## Architecture
 
 ```text
 Browser
-  |
-  |-- Next.js / Vercel
-  |     |-- landing / auth / dashboard
-  |     |-- Better Auth
-  |     `-- Drizzle ORM -> Neon Postgres
-  |
-  `-- Rust studio backend / Railway
-        |-- HTTP + WebSocket realtime project state
-        `-- /data Railway volume for project JSON + samples
+  │
+  ├── Next.js (Vercel)
+  │     ├── landing / auth / dashboard / invite
+  │     ├── Better Auth  (email + password, optional Google)
+  │     ├── Drizzle ORM → Neon Postgres   (accounts, project metadata, membership)
+  │     └── /api/projects/[id]/token      (mints short-lived HMAC tokens)
+  │
+  └── Rust studio backend (Railway)
+        ├── WebSocket rooms — authoritative musical ProjectState
+        ├── verifies the HMAC token on join (identity + role, no DB needed)
+        └── /data volume — project JSON + uploaded samples
 ```
 
-Postgres is intentionally **not** replacing the Rust project store yet. It stores account and project metadata so you can add accounts/dashboard ownership without rewriting the realtime backend.
+Postgres never holds the musical document. It stores who owns what and mirrors
+`name / bpm / bars / isPublic / updatedAt` so the dashboard can render without
+touching the Rust service. The Rust service is authoritative for the song.
 
-## 1. Install
+### How access control works
+
+1. The browser asks `POST /api/projects/[id]/token`.
+2. Next.js checks the Better Auth session **and** that the user owns the project
+   or is a member of it.
+3. If so it returns a token signed with `REALTIME_SHARED_SECRET`, valid ~5 min,
+   carrying `{ userId, name, image, projectId, role }`.
+4. The browser opens the WebSocket and sends `{ type: "join", project_id, token }`.
+5. The Rust server verifies the signature + expiry + that the token is for this
+   project. Presence and the editor/owner gate come straight from the token.
+
+Tokens are re-minted automatically on every reconnect.
+
+## Local development
+
+You need three things running: Neon (hosted), the Rust backend, and this app.
 
 ```bash
 npm install
-cp .env.example .env.local
+cp .env.example .env.local     # then fill in the values
 ```
 
-Keep your existing Railway backend values:
+`REALTIME_SHARED_SECRET` must be **identical** in `.env.local` and wherever the
+Rust backend runs.
 
-```env
-NEXT_PUBLIC_API_URL=https://YOUR-STUDIO-BACKEND.up.railway.app
-NEXT_PUBLIC_WS_URL=wss://YOUR-STUDIO-BACKEND.up.railway.app/ws
-```
+### Point at a local Rust backend
 
-## 2. Create a Neon database
-
-Create a Neon Postgres project and copy its connection string into:
-
-```env
-DATABASE_URL=postgresql://...
-```
-
-Drizzle supports Neon directly with the serverless HTTP driver used in `db/index.ts`.
-
-## 3. Configure Better Auth
-
-Generate a strong secret, for example:
+The simplest local setup runs the Rust service on `:8090`:
 
 ```bash
-openssl rand -base64 32
+# in the ms repo
+DATA_DIR=./data \
+REALTIME_SHARED_SECRET=<same value as .env.local> \
+PORT=8090 \
+cargo run --release --bin studio_server
 ```
-
-Then set:
-
-```env
-BETTER_AUTH_SECRET=YOUR_RANDOM_SECRET
-BETTER_AUTH_URL=http://localhost:3000
-```
-
-For Vercel, change `BETTER_AUTH_URL` to the deployed HTTPS site URL.
-
-## 4. Push the Drizzle schema
 
 ```bash
-npm run db:push
-```
-
-Tables created by `db/schema.ts`:
-
-```text
-user
-session
-account
-verification
-project
-project_member
-```
-
-The first four are Better Auth's core database models. `project` and `project_member` belong to MIDICOLLAB.
-
-## 5. Optional Google login
-
-Create Google OAuth credentials and add:
-
-```env
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true
-```
-
-If those are absent, email/password still works. The Google button stays visible but explains that setup is required.
-
-## 6. Run
-
-```bash
+# in this repo
+NEXT_PUBLIC_API_URL=http://localhost:8090 \
+NEXT_PUBLIC_WS_URL=ws://localhost:8090/ws \
 npm run dev
 ```
 
-Open:
+Or point `NEXT_PUBLIC_API_URL` / `NEXT_PUBLIC_WS_URL` at your deployed Railway
+backend (which must already have the matching `REALTIME_SHARED_SECRET`).
+
+### Database
+
+```bash
+npm run db:push       # apply db/schema.ts to Neon
+npm run db:studio     # browse data
+```
+
+Tables: `user`, `session`, `account`, `verification` (Better Auth) and
+`project`, `project_member` (MIDICOLLAB).
+
+## Routes
 
 ```text
-http://localhost:3000
+/                         landing
+/signup  /login           auth  (accept ?next= to resume an invite)
+/dashboard                 your projects (owned + shared)
+/studio?project=<id>       the collaborative studio
+/join/<id>                 invite link — signs in then drops you in the studio
+/p/<id>                    public read-only player (only if the owner enabled it)
+/explore                   community preview (sample content, not a launch blocker)
 ```
 
-Useful routes:
+## Deploying
 
-```text
-/                    landing page
-/signup              create account
-/login               sign in
-/dashboard           project dashboard
-/studio              collaborative DAW
-/studio?project=x    open a particular room/project
-/p/x                  public shared player
-```
+See [`DEPLOYMENT.md`](./DEPLOYMENT.md) for the full checklist. Short version:
 
-## 7. Vercel environment variables
-
-Add all production values in Vercel:
-
-```env
-NEXT_PUBLIC_API_URL=https://YOUR-STUDIO-BACKEND.up.railway.app
-NEXT_PUBLIC_WS_URL=wss://YOUR-STUDIO-BACKEND.up.railway.app/ws
-DATABASE_URL=postgresql://...
-BETTER_AUTH_SECRET=...
-BETTER_AUTH_URL=https://YOUR-VERCEL-DOMAIN.vercel.app
-```
-
-And, only if using Google:
-
-```env
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true
-```
-
-## Project metadata sync
-
-The DAW's existing **Save** button still saves the full musical project to the Rust backend first. It then makes a best-effort call to `/api/projects` so logged-in users get the project name/BPM/bars in their dashboard.
-
-This means a database/auth outage does **not** prevent the Rust project from saving.
-
-## Next architecture step
-
-Once accounts/dashboard/collaboration are stable, a good next migration is to make Postgres the index of all projects and replace the JSON project document with object/database storage behind the Rust server. Do that later; there is no reason to destabilize realtime collaboration now.
+1. Deploy the Rust backend (`ms` repo) to Railway with a `/data` **volume**,
+   `REALTIME_SHARED_SECRET`, and `DATA_DIR=/data`.
+2. Set every key from `.env.example` in Vercel (production values, `https://` +
+   `wss://`, `BETTER_AUTH_URL` = your deployed origin).
+3. `npm run db:push` against the production Neon branch.
+4. Deploy this app to Vercel.

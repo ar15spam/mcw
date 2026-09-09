@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { synthPreset } from "@/lib/default-project";
 import { uploadSample } from "@/lib/api";
 import type {
@@ -13,9 +14,20 @@ type Props = {
   project: ProjectState;
   track: Track | null;
   commit: (operation: ProjectOperation) => void;
+  canEdit?: boolean;
 };
 
-export default function InstrumentPanel({ project, track, commit }: Props) {
+export default function InstrumentPanel({
+  project,
+  track,
+  commit,
+  canEdit = true,
+}: Props) {
+  const [uploadState, setUploadState] = useState<
+    "idle" | "uploading" | "error"
+  >("idle");
+  const [uploadError, setUploadError] = useState("");
+
   if (!track) return null;
 
   const setMixer = (patch: Partial<Track["mixer"]>) => {
@@ -147,24 +159,49 @@ export default function InstrumentPanel({ project, track, commit }: Props) {
 
       {track.kind === "sampler" && (
         <div className="samplerPanel">
-          <label className="uploadButton">
-            Upload audio
+          <label className="uploadButton" aria-disabled={uploadState === "uploading"}>
+            {uploadState === "uploading" ? "Uploading…" : "Upload audio"}
             <input
               type="file"
               accept="audio/*"
+              disabled={uploadState === "uploading" || !canEdit}
               onChange={async (e) => {
                 const file = e.target.files?.[0];
+                e.target.value = "";
                 if (!file) return;
-                const asset = await uploadSample(file);
-                commit({ type: "add_sample_asset", asset });
-                commit({
-                  type: "set_sampler_asset",
-                  track_id: track.id,
-                  sample_id: asset.id,
-                });
+
+                if (file.size > 25 * 1024 * 1024) {
+                  setUploadState("error");
+                  setUploadError("Audio files must be under 25 MB.");
+                  return;
+                }
+
+                setUploadState("uploading");
+                setUploadError("");
+                try {
+                  const asset = await uploadSample(file, project.projectId);
+                  commit({ type: "add_sample_asset", asset });
+                  commit({
+                    type: "set_sampler_asset",
+                    track_id: track.id,
+                    sample_id: asset.id,
+                  });
+                  setUploadState("idle");
+                } catch (cause) {
+                  setUploadState("error");
+                  setUploadError(
+                    cause instanceof Error
+                      ? cause.message
+                      : "Upload failed. Try again.",
+                  );
+                }
               }}
             />
           </label>
+
+          {uploadState === "error" && (
+            <p className="samplerUploadError">{uploadError}</p>
+          )}
 
           <select
             value={track.sampleId ?? ""}

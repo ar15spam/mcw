@@ -2,11 +2,13 @@ import type { ProjectOperation, ProjectState } from "@/lib/model";
 
 export type UserPresence = {
   clientId: number;
-  username: string;
+  userId: string;
+  name: string;
+  image: string | null;
 };
 
 export type ClientMessage =
-  | { type: "join"; project_id: string; username: string }
+  | { type: "join"; project_id: string; token: string }
   | { type: "project_operation"; operation: ProjectOperation };
 
 export type ServerMessage =
@@ -26,3 +28,12 @@ export type ServerMessage =
       users: UserPresence[];
     }
   | { type: "error"; message: string };
+
+export type ConnectionStatus =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "offline";
+
+export type SaveStatus = "idle" | "saving" | "saved" | "offline";

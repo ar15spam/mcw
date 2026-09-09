@@ -7,10 +7,18 @@ import { authClient } from "@/lib/auth-client";
 
 type Props = {
   mode: "signup" | "login";
+  next?: string;
 };
 
-export default function AuthForm({ mode }: Props) {
+function safeNext(next?: string): string {
+  if (!next) return "/dashboard";
+  if (!next.startsWith("/") || next.startsWith("//")) return "/dashboard";
+  return next;
+}
+
+export default function AuthForm({ mode, next }: Props) {
   const router = useRouter();
+  const destination = safeNext(next);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,7 +39,7 @@ export default function AuthForm({ mode }: Props) {
           name: name.trim(),
           email: email.trim(),
           password,
-          callbackURL: "/dashboard",
+          callbackURL: destination,
         });
 
         if (result.error) throw new Error(result.error.message);
@@ -39,13 +47,13 @@ export default function AuthForm({ mode }: Props) {
         const result = await authClient.signIn.email({
           email: email.trim(),
           password,
-          callbackURL: "/dashboard",
+          callbackURL: destination,
         });
 
         if (result.error) throw new Error(result.error.message);
       }
 
-      router.push("/dashboard");
+      router.push(destination);
       router.refresh();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Something went wrong");
@@ -62,7 +70,7 @@ export default function AuthForm({ mode }: Props) {
     setError("");
     await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/dashboard",
+      callbackURL: destination,
     });
   }
 
@@ -137,7 +145,11 @@ export default function AuthForm({ mode }: Props) {
 
         <p className="authSwitch">
           {isSignup ? "ALREADY HAVE AN ACCOUNT?" : "NEW TO MIDICOLLAB?"}{" "}
-          <Link href={isSignup ? "/login" : "/signup"}>
+          <Link
+            href={`${isSignup ? "/login" : "/signup"}${
+              next ? `?next=${encodeURIComponent(next)}` : ""
+            }`}
+          >
             {isSignup ? "SIGN IN →" : "CREATE ONE →"}
           </Link>
         </p>

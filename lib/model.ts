@@ -78,6 +78,7 @@ export type ProjectState = {
   loopStartBar: number;
   loopEndBar: number;
   masterVolume: number;
+  isPublic: boolean;
   revision: number;
   tracks: Track[];
   samples: SampleAsset[];
@@ -90,6 +91,7 @@ export type ProjectOperation =
   | { type: "set_playing"; playing: boolean; start_at_ms: number | null }
   | { type: "set_loop"; start_bar: number; end_bar: number }
   | { type: "set_master_volume"; volume: number }
+  | { type: "set_public"; is_public: boolean }
   | { type: "add_track"; track: Track }
   | { type: "delete_track"; track_id: string }
   | { type: "rename_track"; track_id: string; name: string }

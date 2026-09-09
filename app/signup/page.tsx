@@ -1,7 +1,12 @@
 import Link from "next/link";
 import AuthForm from "@/components/auth/AuthForm";
 
-export default function SignupPage() {
+export default async function SignupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
   return (
     <main className="authPage">
       <section className="authPanel">
@@ -9,7 +14,7 @@ export default function SignupPage() {
           <span className="markBars" aria-hidden="true"><i /><i /><i /><i /><i /></span>
           MIDICOLLAB
         </Link>
-        <AuthForm mode="signup" />
+        <AuthForm mode="signup" next={next} />
         <div className="authLegal">BY CONTINUING, YOU AGREE TO THE TERMS / PRIVACY</div>
       </section>
 

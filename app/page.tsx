@@ -71,7 +71,7 @@ export default function LandingPage() {
             </p>
             <div className="heroButtons">
               <Link className="bigPrimary" href="/signup">START CREATING <span>↗</span></Link>
-              <Link className="bigGhost" href="/studio?project=house-demo">OPEN DEMO STUDIO</Link>
+              <Link className="bigGhost" href="/signup">CREATE FREE ACCOUNT</Link>
             </div>
           </div>
         </div>
@@ -193,7 +193,7 @@ export default function LandingPage() {
         <h2>MAKE THE<br />NEXT ONE<br /><span>TOGETHER.</span></h2>
         <div className="finalCtaActions">
           <Link className="bigPrimary light" href="/signup">CREATE YOUR ACCOUNT <span>↗</span></Link>
-          <Link href="/studio?project=house-demo">OR TRY THE STUDIO →</Link>
+          <Link href="/login">OR SIGN IN →</Link>
         </div>
       </section>
 

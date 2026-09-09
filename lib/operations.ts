@@ -40,6 +40,10 @@ export function applyOperation(
       next.masterVolume = Math.max(0, Math.min(1, operation.volume));
       break;
 
+    case "set_public":
+      next.isPublic = operation.is_public;
+      break;
+
     case "add_track":
       next.tracks.push(operation.track);
       break;
