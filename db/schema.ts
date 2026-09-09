@@ -76,6 +76,12 @@ export const project = pgTable(
     name: text("name").notNull(),
     bpm: integer("bpm").notNull().default(124),
     bars: integer("bars").notNull().default(8),
+    // Public projects are listenable (read-only) at /p/<id>. Editing always
+    // requires membership; this only controls the public player.
+    isPublic: boolean("is_public").notNull().default(false),
+    // Soft delete. The Rust musical document is left in place; a deleted
+    // project simply stops appearing anywhere and can no longer be opened.
+    deletedAt: timestamp("deleted_at", { mode: "date" }),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
   },

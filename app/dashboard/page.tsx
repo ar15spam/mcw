@@ -2,24 +2,21 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { createProject } from "@/lib/create-project";
+import NewProjectDialog from "@/components/dashboard/NewProjectDialog";
 
 type ProjectRow = {
   id: string;
   name: string;
   bpm: number;
   bars: number;
+  isPublic: boolean;
   updatedAt: string;
   createdAt: string;
+  role: "owner" | "editor";
 };
-
-function makeProjectId() {
-  const random = typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID().replaceAll("-", "").slice(0, 8)
-    : Math.random().toString(36).slice(2, 10);
-  return `jam-${random}`;
-}
 
 function relativeDate(value: string) {
   const date = new Date(value);
@@ -34,52 +31,114 @@ function relativeDate(value: string) {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { data: session, isPending, error: sessionError } = authClient.useSession();
+  const { data: session, isPending, error: sessionError } =
+    authClient.useSession();
   const [projects, setProjects] = useState<ProjectRow[]>([]);
-  const [loadingProjects, setLoadingProjects] = useState(false);
+  const [loadingProjects, setLoadingProjects] = useState(true);
   const [projectError, setProjectError] = useState("");
   const [creating, setCreating] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
-  useEffect(() => {
-    if (!session?.user) return;
-
+  const loadProjects = useCallback(() => {
     setLoadingProjects(true);
-    fetch("/api/projects")
+    setProjectError("");
+    fetch("/api/projects", { cache: "no-store" })
       .then(async (response) => {
         const body = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(body.error || "Could not load projects");
         return body as { projects: ProjectRow[] };
       })
       .then((body) => setProjects(body.projects))
-      .catch((cause) => setProjectError(cause instanceof Error ? cause.message : "Could not load projects"))
+      .catch((cause) =>
+        setProjectError(
+          cause instanceof Error ? cause.message : "Could not load projects",
+        ),
+      )
       .finally(() => setLoadingProjects(false));
-  }, [session?.user]);
+  }, []);
+
+  useEffect(() => {
+    if (!session?.user) return;
+    loadProjects();
+  }, [session?.user, loadProjects]);
 
   const firstName = useMemo(() => {
     const name = session?.user?.name?.trim();
     return name ? name.split(/\s+/)[0] : "Producer";
   }, [session?.user?.name]);
 
-  async function createProject() {
+  async function handleStart(starter: string, describe?: string) {
     if (!session?.user || creating) return;
     setCreating(true);
     setProjectError("");
-
-    const id = makeProjectId();
-    const name = "Untitled session";
-
     try {
-      const response = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id, name, bpm: 124, bars: 8 }),
-      });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error || "Could not create project");
-      router.push(`/studio?project=${encodeURIComponent(id)}`);
+      const id = await createProject();
+      if (describe) {
+        try {
+          sessionStorage.setItem("mc_starter_describe", describe);
+        } catch {
+          /* ignore */
+        }
+      }
+      const query =
+        starter && starter !== "beat"
+          ? `&starter=${encodeURIComponent(starter)}`
+          : "";
+      router.push(`/studio?project=${encodeURIComponent(id)}${query}`);
     } catch (cause) {
-      setProjectError(cause instanceof Error ? cause.message : "Could not create project");
+      setProjectError(
+        cause instanceof Error ? cause.message : "Could not create project",
+      );
       setCreating(false);
+      setDialogOpen(false);
+    }
+  }
+
+  async function submitRename(id: string) {
+    const name = renameValue.trim();
+    setRenamingId(null);
+    if (!name) return;
+    const previous = projects;
+    setProjects((rows) =>
+      rows.map((row) => (row.id === id ? { ...row, name } : row)),
+    );
+    try {
+      const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setProjects(previous);
+      setProjectError("Rename failed. Try again.");
+    }
+  }
+
+  async function handleDelete(id: string, name: string) {
+    if (
+      !window.confirm(
+        `Delete “${name}”? This removes it for you and everyone you invited. This can't be undone.`,
+      )
+    ) {
+      return;
+    }
+    setBusyId(id);
+    const previous = projects;
+    setProjects((rows) => rows.filter((row) => row.id !== id));
+    try {
+      const res = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setProjects(previous);
+      setProjectError("Delete failed. Try again.");
+    } finally {
+      setBusyId(null);
     }
   }
 
@@ -92,7 +151,7 @@ export default function DashboardPage() {
   if (isPending) {
     return (
       <main className="dashboardPage">
-        <div className="dashboardBoot">Loading workspace...</div>
+        <div className="dashboardBoot">Loading workspace…</div>
       </main>
     );
   }
@@ -102,24 +161,36 @@ export default function DashboardPage() {
       <main className="dashboardPage dashboardLoggedOut">
         <nav className="dashNav dashNavV2">
           <Link className="wordmark" href="/">
-            <span className="markBars" aria-hidden="true"><i /><i /><i /><i /><i /></span>
+            <span className="markBars" aria-hidden="true">
+              <i /><i /><i /><i /><i />
+            </span>
             MIDICOLLAB
           </Link>
           <div className="dashNavSpacer" />
-          <Link className="dashNavTextLink" href="/login">Sign in</Link>
+          <Link className="dashNavTextLink" href="/login">
+            Sign in
+          </Link>
         </nav>
 
         <section className="dashboardEmptyState dashboardEmptyStateV2">
           <p>Workspace unavailable</p>
-          <h1>{sessionError ? "Auth isn't connected yet." : "Sign in to see your projects."}</h1>
+          <h1>
+            {sessionError
+              ? "Auth isn't connected yet."
+              : "Sign in to see your projects."}
+          </h1>
           <span>
             {sessionError
               ? "Check your auth and database environment variables, then reload the app."
               : "Your projects and collaborative sessions live here."}
           </span>
           <div>
-            <Link className="dashPrimaryButton" href="/login">Sign in</Link>
-            <Link className="dashSecondaryButton" href="/signup">Create account</Link>
+            <Link className="dashPrimaryButton" href="/login">
+              Sign in
+            </Link>
+            <Link className="dashSecondaryButton" href="/signup">
+              Create account
+            </Link>
           </div>
         </section>
       </main>
@@ -130,12 +201,17 @@ export default function DashboardPage() {
     <main className="dashboardPage dashboardPageV2">
       <nav className="dashNav dashNavV2">
         <Link className="wordmark" href="/">
-          <span className="markBars" aria-hidden="true"><i /><i /><i /><i /><i /></span>
+          <span className="markBars" aria-hidden="true">
+            <i /><i /><i /><i /><i />
+          </span>
           MIDICOLLAB
         </Link>
 
         <div className="dashNavMiddle dashNavMiddleV2">
-          <span className="active">Projects</span>
+          <Link href="/dashboard" className="active">
+            Projects
+          </Link>
+          <Link href="/explore">Explore</Link>
         </div>
 
         <div className="dashAccount dashAccountV2">
@@ -150,91 +226,169 @@ export default function DashboardPage() {
           <div className="dashboardTitleBlock">
             <span className="dashboardKicker">Your workspace</span>
             <h1>Projects</h1>
-            <p>Welcome back, {firstName}. Pick up where you left off or start a new session.</p>
+            <p>
+              Welcome back, {firstName}. Pick up where you left off or start a new
+              session.
+            </p>
           </div>
 
-          <button className="dashboardCreateButton" onClick={createProject} disabled={creating}>
+          <button
+            className="dashboardCreateButton"
+            onClick={() => setDialogOpen(true)}
+            disabled={creating}
+          >
             <span>+</span>
-            {creating ? "Creating..." : "New project"}
+            {creating ? "Creating…" : "New project"}
           </button>
         </header>
-
-        <section className="dashboardUtilityBar">
-          <form
-            className="dashboardJoinForm"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const data = new FormData(event.currentTarget);
-              const room = String(data.get("room") || "").trim().replace(/[^a-zA-Z0-9_-]/g, "");
-              if (room) router.push(`/studio?project=${encodeURIComponent(room)}`);
-            }}
-          >
-            <label htmlFor="quick-room">Join a room</label>
-            <div>
-              <input id="quick-room" name="room" placeholder="Enter room ID" aria-label="Room id" />
-              <button>Join</button>
-            </div>
-          </form>
-
-          <div className="dashboardSyncStatus">
-            <span className="syncDot" />
-            {loadingProjects ? "Syncing projects" : "Workspace synced"}
-          </div>
-        </section>
 
         <section className="dashboardProjects dashboardProjectsV2">
           <div className="dashboardSectionHead dashboardSectionHeadV2">
             <div>
               <h2>Recent</h2>
-              <span>{projects.length} {projects.length === 1 ? "project" : "projects"}</span>
+              <span>
+                {projects.length} {projects.length === 1 ? "project" : "projects"}
+              </span>
             </div>
+            {!loadingProjects && (
+              <button className="dashboardRefresh" onClick={loadProjects}>
+                Refresh
+              </button>
+            )}
           </div>
 
           {projectError && <div className="dashboardError">{projectError}</div>}
 
-          <div className="projectGrid projectGridV2">
-            {projects.map((project, index) => (
-              <Link
-                className={`projectCard projectCardV2 projectVariant${index % 4}`}
-                href={`/studio?project=${encodeURIComponent(project.id)}`}
-                key={project.id}
-              >
-                <div className="projectCardVisual" aria-hidden="true">
-                  <div className="projectCardBar">
-                    <span>{project.bpm}</span>
-                    <small>BPM</small>
-                  </div>
-                  <div className="projectCardPattern">
-                    {Array.from({ length: 32 }, (_, cell) => (
-                      <i key={cell} className={(cell + index * 2) % 5 === 0 || (cell + index) % 11 === 0 ? "on" : ""} />
-                    ))}
-                  </div>
-                  <span className="projectCardPlay">▶</span>
-                </div>
+          {loadingProjects && (
+            <div className="projectGrid projectGridV2">
+              {[0, 1, 2].map((n) => (
+                <div key={n} className="projectCard projectCardSkeleton" />
+              ))}
+            </div>
+          )}
 
-                <div className="projectCardContent">
-                  <div>
-                    <h3>{project.name}</h3>
-                    <p>{project.bpm} BPM · {project.bars} bars</p>
-                  </div>
-                  <div className="projectCardMeta">
-                    <span>{relativeDate(project.updatedAt)}</span>
-                    <span>Open →</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
+          {!loadingProjects && (
+            <div className="projectGrid projectGridV2">
+              {projects.map((project, index) => (
+                <article
+                  className={`projectCard projectCardV2 projectVariant${index % 4}`}
+                  key={project.id}
+                  aria-busy={busyId === project.id}
+                >
+                  <Link
+                    className="projectCardVisual"
+                    href={`/studio?project=${encodeURIComponent(project.id)}`}
+                    aria-label={`Open ${project.name}`}
+                  >
+                    <div className="projectCardBar">
+                      <span>{project.bpm}</span>
+                      <small>BPM</small>
+                    </div>
+                    <div className="projectCardPattern">
+                      {Array.from({ length: 32 }, (_, cell) => (
+                        <i
+                          key={cell}
+                          className={
+                            (cell + index * 2) % 5 === 0 ||
+                            (cell + index) % 11 === 0
+                              ? "on"
+                              : ""
+                          }
+                        />
+                      ))}
+                    </div>
+                    <span className="projectCardPlay">▶</span>
+                  </Link>
 
-            {!loadingProjects && projects.length === 0 && (
-              <button className="emptyProjectCard emptyProjectCardV2" onClick={createProject}>
-                <span>+</span>
-                <strong>Create your first project</strong>
-                <p>Start with the default 8-bar session and invite someone when you're ready.</p>
-              </button>
-            )}
-          </div>
+                  <div className="projectCardContent">
+                    <div className="projectCardTitleRow">
+                      {renamingId === project.id ? (
+                        <input
+                          autoFocus
+                          className="projectRenameInput"
+                          value={renameValue}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onBlur={() => submitRename(project.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") e.currentTarget.blur();
+                            if (e.key === "Escape") setRenamingId(null);
+                          }}
+                        />
+                      ) : (
+                        <h3>{project.name}</h3>
+                      )}
+                      {project.role === "editor" && (
+                        <span className="projectRoleTag">Shared</span>
+                      )}
+                      {project.isPublic && (
+                        <span className="projectRoleTag isPublic">Public</span>
+                      )}
+                    </div>
+                    <p>
+                      {project.bpm} BPM · {project.bars} bars
+                    </p>
+
+                    <div className="projectCardMeta">
+                      <span>{relativeDate(project.updatedAt)}</span>
+                      <div className="projectCardActions">
+                        <Link
+                          href={`/studio?project=${encodeURIComponent(project.id)}`}
+                        >
+                          Open →
+                        </Link>
+                        {project.role === "owner" && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setRenameValue(project.name);
+                                setRenamingId(project.id);
+                              }}
+                            >
+                              Rename
+                            </button>
+                            <button
+                              className="danger"
+                              disabled={busyId === project.id}
+                              onClick={() =>
+                                handleDelete(project.id, project.name)
+                              }
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))}
+
+              {projects.length === 0 && (
+                <button
+                  className="emptyProjectCard emptyProjectCardV2"
+                  onClick={() => setDialogOpen(true)}
+                  disabled={creating}
+                >
+                  <span>+</span>
+                  <strong>Create your first project</strong>
+                  <p>
+                    Start with an 8-bar house sketch and invite someone when
+                    you&apos;re ready.
+                  </p>
+                </button>
+              )}
+            </div>
+          )}
         </section>
       </div>
+
+      {dialogOpen && (
+        <NewProjectDialog
+          busy={creating}
+          onClose={() => setDialogOpen(false)}
+          onStart={handleStart}
+        />
+      )}
     </main>
   );
 }

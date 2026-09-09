@@ -1,7 +1,12 @@
 import Link from "next/link";
 import AuthForm from "@/components/auth/AuthForm";
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
   return (
     <main className="authPage loginVariant">
       <section className="authPanel">
@@ -9,7 +14,7 @@ export default function LoginPage() {
           <span className="markBars" aria-hidden="true"><i /><i /><i /><i /><i /></span>
           MIDICOLLAB
         </Link>
-        <AuthForm mode="login" />
+        <AuthForm mode="login" next={next} />
         <div className="authLegal">SECURE SESSION / COOKIE AUTH / POSTGRES</div>
       </section>
 

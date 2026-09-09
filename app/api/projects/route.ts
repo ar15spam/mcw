@@ -1,109 +1,74 @@
-import { desc, eq } from "drizzle-orm";
+import { requireContext } from "@/lib/server-context";
+import { listProjectsForUser } from "@/lib/authz";
+import { seedRustProject } from "@/lib/rust-backend";
 
-function configError() {
-  return Response.json(
-    { error: "DATABASE_URL is not configured" },
-    { status: 503 },
-  );
+function newProjectId(): string {
+  const rand =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID().replaceAll("-", "").slice(0, 12)
+      : Math.random().toString(36).slice(2, 14);
+  return `p-${rand}`;
 }
 
-async function getContext(request: Request) {
-  if (!process.env.DATABASE_URL || !process.env.BETTER_AUTH_SECRET) return null;
-
-  const [{ auth }, { db }, schema] = await Promise.all([
-    import("@/lib/auth"),
-    import("@/db"),
-    import("@/db/schema"),
-  ]);
-
-  const session = await auth.api.getSession({ headers: request.headers });
-  return { auth, db, schema, session };
-}
+const clamp = (value: number, min: number, max: number) =>
+  Math.max(min, Math.min(max, value));
 
 export async function GET(request: Request) {
-  const context = await getContext(request);
-  if (!context) return configError();
-  if (!context.session) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const result = await requireContext(request);
+  if ("error" in result) return result.error;
 
-  const rows = await context.db
-    .select({
-      id: context.schema.project.id,
-      name: context.schema.project.name,
-      bpm: context.schema.project.bpm,
-      bars: context.schema.project.bars,
-      updatedAt: context.schema.project.updatedAt,
-      createdAt: context.schema.project.createdAt,
-    })
-    .from(context.schema.project)
-    .where(eq(context.schema.project.ownerId, context.session.user.id))
-    .orderBy(desc(context.schema.project.updatedAt))
-    .limit(24);
-
-  return Response.json({ projects: rows });
+  const projects = await listProjectsForUser(result.ctx);
+  return Response.json({ projects });
 }
 
 export async function POST(request: Request) {
-  const context = await getContext(request);
-  if (!context) return configError();
-  if (!context.session) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const result = await requireContext(request);
+  if ("error" in result) return result.error;
+  const { ctx } = result;
 
-  const payload = (await request.json().catch(() => null)) as
-    | { id?: string; name?: string; bpm?: number; bars?: number }
+  const body = (await request.json().catch(() => null)) as
+    | { name?: string; bpm?: number; bars?: number }
     | null;
 
-  const id = payload?.id?.trim();
-  const name = payload?.name?.trim();
-  const bpm = Math.round(Number(payload?.bpm ?? 124));
-  const bars = Math.round(Number(payload?.bars ?? 8));
-
-  if (!id || !/^[a-zA-Z0-9_-]{2,80}$/.test(id)) {
-    return Response.json({ error: "Invalid project id" }, { status: 400 });
+  const rawName =
+    typeof body?.name === "string" && body.name.trim()
+      ? body.name.trim()
+      : "Untitled session";
+  if (rawName.length > 80) {
+    return Response.json({ error: "Project name is too long" }, { status: 400 });
   }
 
-  if (!name || name.length > 80) {
-    return Response.json({ error: "Invalid project name" }, { status: 400 });
-  }
+  const bpm = clamp(Math.round(Number(body?.bpm ?? 124)) || 124, 50, 220);
+  const bars = clamp(Math.round(Number(body?.bars ?? 8)) || 8, 1, 64);
 
-  if (bpm < 50 || bpm > 220 || bars < 1 || bars > 128) {
-    return Response.json({ error: "Invalid project metadata" }, { status: 400 });
-  }
-
-  const existing = await context.db
-    .select({ ownerId: context.schema.project.ownerId })
-    .from(context.schema.project)
-    .where(eq(context.schema.project.id, id))
-    .limit(1);
-
-  if (existing[0] && existing[0].ownerId !== context.session.user.id) {
-    return Response.json({ error: "Project id already exists" }, { status: 409 });
-  }
-
+  const id = newProjectId();
   const now = new Date();
 
-  await context.db
-    .insert(context.schema.project)
-    .values({
-      id,
-      ownerId: context.session.user.id,
-      name,
+  await ctx.db.insert(ctx.schema.project).values({
+    id,
+    ownerId: ctx.session.user.id,
+    name: rawName,
+    bpm,
+    bars,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  try {
+    await seedRustProject({
+      projectId: id,
+      name: rawName,
       bpm,
       bars,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: context.schema.project.id,
-      set: {
-        name,
-        bpm,
-        bars,
-        updatedAt: now,
-      },
+      ownerId: ctx.session.user.id,
+      ownerName: ctx.session.user.name ?? "Producer",
+      ownerImage: ctx.session.user.image ?? null,
     });
+  } catch (error) {
+    // Non-fatal: the Rust server lazily creates a default document on first
+    // join. Log so a persistent misconfiguration is visible.
+    console.error("Failed to seed Rust project", id, error);
+  }
 
-  return Response.json({ ok: true, id });
+  return Response.json({ id, name: rawName, bpm, bars });
 }
