@@ -27,8 +27,8 @@ The AI is not a text-to-audio black box. A prompt becomes a **composition plan**
 
 | | |
 |---|---|
-| Frontend | ~11k LOC TypeScript / React 19 / Next.js 15 |
-| Realtime backend | ~1.6k LOC Rust (Axum + Tokio + WebSockets) |
+| Frontend | TypeScript / React 19 / Next.js 15 |
+| Realtime backend | Rust (Axum + Tokio + WebSockets) |
 | Shared operation protocol | **28 `ProjectOperation` variants**, one source of truth, mirrored + re-validated in Rust |
 | AI tools | **37 validated tools** → operation arrays (never direct state writes) |
 | Timeline | up to **256 bars**, bar/beat ruler, sample-accurate playhead, click-to-seek, zoom/scroll |
